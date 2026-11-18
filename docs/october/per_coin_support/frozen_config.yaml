@@ -1,0 +1,176 @@
+# Frozen configuration — per-coin trend following
+# Registered 2026-10-07. Machine-readable companion to docs/october/per_coin_protocol_2026-10-07.md,
+# which governs on any disagreement. Any change requires a dated change-log row (protocol Part 13).
+
+registration:
+  protocol: docs/october/per_coin_protocol_2026-10-07.md
+  tag: per-coin-protocol-2026-10-07
+  supersedes_draft: per_coin_spec_draft_2026-10-07.md (uncommitted draft, removed at freeze)
+
+amendments:
+  - id: 1
+    date: 2026-10-12
+    tag: per-coin-amendment-1-2026-10-12
+    summary: primary universe = sealed basket top-10 membership; registry-wide = counted sensitivity; K5 + H4 added
+  - id: 3
+    date: 2026-10-19
+    summary: counted sensitivity dynamic_risk_targeting (book rescaled daily to 30% ex-ante vol, unbounded multiplier, then caps)
+  - id: 2
+    date: 2026-10-13
+    tag: per-coin-amendment-2-2026-10-13
+    summary: per-coin top-25 and top-50 counted sensitivities (deep map, DeepSelector, schedule from 2021-07-01)
+
+dynamic_risk_targeting:                     # Amendment 3, as fixed by Clarification 2 (2026-10-22)
+  order: [unscaled_book, ex_ante_vol, multiplier, ideal, buffer_primary_band, per_instrument_cap, gross_cap]
+  unscaled_book: "(f/10) * w * target_vol / sigma"
+  ex_ante_vol: constant_correlation_rho_bar
+  multiplier: "target_vol / V(u)"            # unbounded
+  multiplier_at_zero_risk: 0.0               # V(u) == 0: every eligible forecast exactly 0, or none eligible
+  buffer_band: primary                       # 0.10 * w * IDM * target_vol / sigma; NOT scaled by the multiplier
+  overlay: none
+  caps: {per_instrument_abs: 0.5, gross_abs: 3.0}
+
+deep_universes:                             # Amendment 2 — counted sensitivities
+  source: DeepSelector                      # portfolio/per_coin_universe.py; sealed screens inherited
+  map_table: data/universe/cmc_contract_map_top100.csv
+  pool_depth: 100
+  sizes: {25: {exit_rank: 33}, 50: {exit_rank: 65}}
+  schedule_start: 2021-07-01
+  shared_contract_rule: price_match_within_5pct_most_matching_days_keeps_range
+  prerequisite: contract_event_register_and_settlement_rules_by_era
+
+primary_universe:                           # Amendment 1 — governs over `universe` below
+  source: sealed_basket_membership          # UniverseSelector(min_history_days=0).select_buffered(reconstitution_dates(end))
+  n: 10
+  rank_field: market_cap
+  information_lag_days: 1
+  reconstitution: monthly_first_calendar_day
+  membership_buffer: {enter_rank: 10, exit_rank: 13}
+  volume_screen_usd: 10_000_000             # the basket's registered 30-day Binance median screen
+  asset_key: cmc_id
+  instrument_weight: equal_over_eligible_members
+  eligible_member: [member_this_month, tradable_day, min_traded_days_64]
+
+universe:                                   # registry-wide design: now a counted SENSITIVITY (Amendment 1)
+  source: binance_usdtm_registry            # registry.list_contracts(); 900 on 2026-10-07
+  instrument_key: contract_plus_traded_span
+  span_break_days_without_trade: 30
+  exclusions_file: docs/october/per_coin_support/exclusions.csv
+  liquidity_gate:
+    source: binance_daily_klines_quote_volume
+    statistic: median
+    window_days: 30
+    min_traded_days_in_window: 20
+    lag_days: 1                             # window ends D-1
+    threshold_usd: 25_000_000
+    sensitivities_usd: [10_000_000, 50_000_000]
+  tradable_day:
+    daily_bar_volume_gt_zero: true
+    exclude_first_traded_day_of_span: true
+    min_hourly_marks_present: 23            # of 24
+  max_instruments: null                     # no count cap
+
+signal:
+  price: daily_open_on_traded_days          # open[D] is the D 00:00 price
+  rule: ewmac_per_instrument
+  speeds: [[8, 32], [16, 64], [32, 128], [64, 256]]
+  forecast_scalars: {"8/32": 5.3, "16/64": 3.75, "32/128": 2.65, "64/256": 1.87}
+  ewma_adjust: true
+  normalisation: "(fast_ewma - slow_ewma) / (price * daily_return_vol)"
+  per_speed_cap: 20.0
+  weights: equal_over_available_speeds
+  speed_available_after_traded_days: 2x_slow_span   # 64, 128, 256, 512
+  fdm_by_available_count: {1: 1.00, 2: 1.04, 3: 1.09, 4: 1.15}   # per_coin_support/fdm_subsets.py
+  blend_cap: 20.0
+  min_traded_days_for_forecast: 64
+  forecast_unit: 10.0
+
+risk:
+  vol_estimator: ewma
+  vol_span_days: 32
+  vol_floor_quantile: 0.05
+  vol_floor_window_days: 500
+  vol_floor_min_days: 100
+  annualisation_days: 365
+  target_vol: 0.30
+  instrument_weight: equal_over_eligible
+  idm:
+    formula: "min(cap, 1/sqrt(1/N + (1-1/N)*rho_bar))"
+    rho_bar: mean_pairwise_pearson_daily_open_to_open_returns
+    window_days: 180
+    min_overlap_days: 90
+    rho_floor: 0.0
+    cap: 2.5
+    no_qualifying_pair: 1.0
+    rho_when_undefined: 1.0                 # Clarification 3: IDM and covariance alike
+  overlay:
+    covariance: constant_correlation_rho_bar
+    trigger_multiple_of_target: 2.0
+    action: scale_all_positions_to_trigger
+  caps:
+    per_instrument_abs: 0.5
+    gross_abs: 3.0
+  order: [x_star, buffer, overlay, per_instrument_cap, gross_cap]
+  cash_rate: 0.0
+
+execution:
+  primary_lag_days: 1                       # decide on D, trade at open[D+1]
+  sensitivities: [same_bar, hourly_0100_mark_proxy]
+  policies: [buffered, full_rebalance]
+  primary_policy: buffered
+  band_half_width: 0.10                     # x standard position, centred on x*
+  band_action: trade_to_nearest_edge
+  no_trade_on_untradable_day: true
+  ineligible_exit: trade_to_zero_next_fill
+
+costs:
+  primary_bp_per_side: 10.0                 # 5 fee + 5 slippage
+  stress_bp_per_side: [20.0, 30.0]
+  settlement_fee_bp: 5.0                    # instrument end: exchange taker fee only
+
+funding:
+  charge: every_recorded_settlement
+  price: hourly_mark_at_settlement
+  sign: positive_rate_longs_pay
+  missing: raise                            # except the sealed 2026-06-24 04:00 exception
+  carried_exception: sealed_protocol_part10_exception1
+
+instrument_end:
+  price: mean_1m_index_close_last_30min_before_last_hourly_mark_close
+  fallback: last_hourly_mark_close_flagged
+  halt_within_span: hold_mark_last_traded_exit_first_traded_bar
+
+sample:
+  data_start: 2020-01-01
+  scored_start: 2021-07-05
+  scored_end: 2026-08-30                    # start of the last holding period
+  capital: 100_000
+  compounding: false
+
+controls:
+  K1: no_signal_long_book_forecast_plus_10  # primary comparator
+  K2: btcusdt_forecast_plus_10_idm_1
+  K3: historical_mean_sign_forecast_pm_10
+  K4: sealed_basket_reference
+  K5: one_basket_forecast_for_every_member_same_sizing   # Amendment 1
+
+inference:
+  primary: alpha_vs_K1_net
+  bootstrap: stationary
+  mean_block_days: 20
+  sensitivity_block_days: [10, 40, 60]
+  replications: 10_000
+  seed: 20261007
+  pass_rule: p05_alpha_gt_0
+  newey_west_lags: 21
+  mechanism_test: coin_specific_price_component_gt_0
+  secondary_H4: strategy_minus_K5_net_gap_gt_0          # Amendment 1, not gating
+  validity:
+    two_sided_min_side_share_of_gross: 0.10
+    min_share_of_two_sided_days: 0.20
+  large_claim_sharpe: 1.0
+  trials_for_dsr: 58                        # Amendment 1: +1 registry-wide; Amendment 2: +2; Amendment 3: +1
+  trials_bracket: [30, 80]
+  counted_sensitivities: [same_bar, hourly_0100, cost_20bp, cost_30bp, full_rebalance,
+                          registry_wide_25m, registry_wide_10m, registry_wide_50m,
+                          top_25, top_50, dynamic_risk_targeting]   # 35 + 11 + 1 primary + 11 = 58

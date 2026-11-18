@@ -1,0 +1,41 @@
+{
+  "capital": 100000.0,
+  "contracts": [
+    "BTCUSDT"
+  ],
+  "files_read": {
+    "data/derived/binance/funding/BTCUSDT.csv": "a52117b6ad12f0a9cb519cde587e3a7b5510530f7a8259518e6eca4032e6c177",
+    "data/derived/binance/mark_1h/BTCUSDT.csv": "319f6b03b0fbf507845fcf3ef6c7c466a175f7bb6421b1e4b72c60a1bd7a2d54",
+    "data/derived/binance/ohlcv/BTCUSDT_1d.csv": "7ae4e9c3ebde4693b9c2f6158a00961fda8e7756d26720a703972962b122c2f6"
+  },
+  "hashes": {
+    "decision_prices": "580cf8a1a5392064da523dd5ae71a959cfba7e1f2f5dca2cd540273bc4ce9216",
+    "eligibility": "c8cdcf1984bbcba6b61b118da7d28e02b2c15e075a9ec461e9d08139e910c16c",
+    "fill_prices": "b4bd1ff450d99e6a25ed4f3e582c03e3e3e2da78d411ba6a8178031962e68368",
+    "forecast": "bf2fb0a23596991d3d0de51567843be437e89709fc1616b6d29d600149fa4308",
+    "mark_price": "500c2d5ad2ed10ea608df920c7038e411acda757de5e4cebacfa51f53a5e5f35",
+    "price": "500c2d5ad2ed10ea608df920c7038e411acda757de5e4cebacfa51f53a5e5f35",
+    "rho_bar": "d56e53e3af859da69891e007274c3fc5653b9d49abec56b66cb5dcb16c7228bf",
+    "settlements": "6f465bd132c06e11f45e95c20becdd73ea7e95f91bb2301f1dfa671cd217545e",
+    "sigma": "18777b6655ccb75e32477af51c0565c6898f11737cb1375be0f94f251662ce0e",
+    "tradable": "cbd2f7cf85bed171dba422326abd1c854da4e0ae71e3f6d02825337c6b19e21b"
+  },
+  "inputs_fingerprint": "e7a11827b37cd2534fc94847e40ac46f7769ac5ea58917893f1883326276e0d5",
+  "ledger_fingerprint": "d9ab2657a3eab58b02320e96ae102554dc770958a2fb39a8ab98be95e662821f",
+  "ledger_notes": [],
+  "model_notes": [],
+  "name": "k2",
+  "parameters": {
+    "band": 0.1,
+    "clock": "primary",
+    "cost_bp": 10.0,
+    "forecast": "k1",
+    "lag": 1,
+    "sizing": "primary",
+    "universe": "btc"
+  },
+  "window": [
+    "2021-07-05",
+    "2026-08-30"
+  ]
+}

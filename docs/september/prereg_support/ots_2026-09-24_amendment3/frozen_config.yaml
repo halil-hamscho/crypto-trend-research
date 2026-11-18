@@ -1,0 +1,187 @@
+# Frozen configuration — Trend Following in Crypto Beta
+# Registered 2026-09-22; Amendments 1 (09-23), 2 and 3 (09-24). All pre-result.
+# Machine-readable companion to pre_registration_2026-09-22.md.
+# Any change requires a dated change-log row in the protocol.
+
+registration:
+  protocol: docs/september/pre_registration_2026-09-22.md
+  amendment: docs/september/pre_registration_amendment_2026-09-23.md  # contains Amendments 1 and 2
+  frozen_commit: 9ae923a    # docs: amendment 3 — the protocol as frozen 2026-09-24
+  external_archive_doi: null # OSF (embargoed) at write-up; Zenodo unusable, repo is private
+  timestamp_proofs: prereg_support/TIMESTAMPS.md   # OpenTimestamps, 2026-09-24
+
+universe:
+  instrument: cap_weighted_top_n_binance_usdtm_perps
+  n: 10
+  data_status: historically_reconstructed_lagged   # NOT vintage point-in-time
+  rank_field: market_cap                            # never CMC's `rank`
+  information_lag_days: 1                           # D-1 snapshot acts on D
+  reconstitution:
+    primary: monthly
+    timestamp_utc: "00:00"
+    schedule_rule: first_calendar_day_of_month      # if not a traded day, the next traded day
+    weights_between: fixed_quantities_drift
+    sensitivity: [weekly_monday, daily]
+  membership_buffer:
+    enter_rank: 10
+    exit_rank: 13
+    stateful: true                                  # incumbents held while rank <= 13
+    applies_to: [strategy, benchmark]
+  liquidity_screen:
+    source: binance_klines_quote_volume
+    statistic: median
+    window_days: 30
+    min_observations: 20
+    threshold_usd: 10_000_000
+    lag_days: 1
+  tradability: contract_volume_gt_zero_that_day
+  asset_key: cmc_id
+  exclusions: stablecoins_wrapped_gold_by_cmc_id    # see selector.EXCLUDED_CMC_IDS
+
+index:
+  return_type: simple                               # arithmetic, from prior close
+  basket_return: sum_of_weight_times_constituent_return
+  continuity_at_reconstitution: chain_linked        # index level continuous; weights step
+  index_base: 100.0
+
+signal:
+  rule: ewmac_on_basket_index_level
+  speeds: [[8, 32], [16, 64], [32, 128], [64, 256]]
+  weights: equal
+  selection_rule: carver_ladder_minus_speed_limit_failures_across_vol_range
+  speed_limit_sr_per_year: 0.13
+  speed_limit_cost_bp_per_side: 10
+  speed_limit_vol_range: [0.50, 0.80]               # a speed must pass throughout
+  ewma_adjust: true
+  normalisation: (fast_ewma - slow_ewma) / (price * daily_return_vol)
+  forecast_scalars: {8/32: 5.3, 16/64: 3.75, 32/128: 2.65, 64/256: 1.87}
+  fdm: 1.15
+  pipeline_order: [raw, normalise, scale_per_speed, clip_pm20, equal_weight_average, apply_fdm, clip_pm20]
+  cap: 20.0
+  barred:
+    - strategies/base.py rolling median scalar
+    - strategies/combination/forecast_combiner.py rolling FDM
+
+risk:
+  vol_estimator: ewma
+  vol_span_days: 32
+  vol_adjust: true
+  vol_floor_rule: percentile_of_own_history
+  vol_floor_quantile: 0.05
+  vol_floor_window_days: 500
+  vol_floor_min_days: 100
+  annualisation_days: 365
+  target_vol: 0.30
+  leverage_cap: 2.0
+  leverage_cap_applied: [after_forecast_sizing, after_buffer_logic]
+  cash_rate: 0.0
+
+execution:
+  policies: [full_rebalance, buffered]
+  primary_policy: buffered
+  band_half_width: 0.10                             # x standard exposure = target_vol / est_vol
+  band_centre: ideal_exposure
+  band_action: trade_to_nearest_edge
+  membership_trades_always_execute: true
+  leg_scaling: proportional_to_current_quantities
+  signal_timestamp_utc: "00:00"                     # close of D
+  execution_price: same_close                       # slippage carried by the cost model
+  funding_rule: apply_pre_trade_position_at_the_00_00_settlement_then_new_position_at_every_subsequent_recorded_settlement
+  funding_sign: funding_pnl = -position_notional * funding_rate   # rate>0 => longs pay
+  gross_definition: price_pnl + funding_pnl
+  net_definition: gross_pnl - fees - slippage
+  funding_intervals_present_in_data: [8, 4, 2, 1]   # hours; never hard-code 8h
+  opening_costs_in_first_scored_return: true
+  terminal_treatment: mark_to_final_close_no_liquidation_cost
+  return_clipping: forbidden
+
+costs:
+  primary_bp_per_side: 10
+  fee_component_bp: 5
+  spread_impact_component_bp: 5
+  order_type_assumed: taker
+  charged: per_leg
+  stress_bp_per_side: [5, 20]
+  measured_variants:
+    - abdi_ranaldo_2017_spread_60d_window
+    - aggtrades_effective_spread
+  aggtrades_sampling: first_7_days_of_Feb_May_Aug_Nov
+  aggtrades_stress_sample: final_30_days_before_settlement   # reported separately
+  fallback_when_unmeasurable_bp: 10
+  validation_window: 2023-05-16/2024-04-30                   # bookTicker coverage
+
+sample:
+  basket_start: 2020-02-09          # first date the volume screen fields 10 names
+  warmup_observations: 512                          # 2 x slowest span (256)
+  warmup_ends: 2021-07-04
+  first_scored_day: 2021-07-05
+  last_scored_day: 2026-08-31                       # funding coverage ends here
+  scored_days: 1884
+  warmup_excluded_as: nan_not_zero
+
+contract_events:
+  settlement_price: mean_index_price_final_30_minutes
+  settlement_source: futures/um/daily/indexPriceKlines (1-minute)
+  settlement_fee: taker
+  proceeds: cash_until_next_reconstitution
+  halt_rule: mark_last_traded_then_exit_at_next_traded_bar_or_reconstitution
+  rebrand_rule: migrate_to_successor_at_first_traded_bar_cash_in_gap
+  report_separately: [LUNAUSDT]
+
+tests:
+  h1:
+    regression: N_buf_excess ~ alpha + beta * N_bench_excess
+    alternative: alpha > 0
+    alpha_level: 0.05
+    sided: one
+    annualisation: 365
+    gate_definition: primary_bootstrap_at_20d_blocks_and_10bp_only
+  h2:
+    statistic: paired_daily_gap_mean
+    comparator: btc_only_trend_identical_settings
+    alternative: E[gap] > 0
+    conditional_on: h1_gate_passed
+    hurdle_delta_annual_return: 0.05
+    hurdle_name: basket_superiority_hurdle      # NOT an equivalence margin
+  inference:
+    method: stationary_block_bootstrap
+    paired: true
+    resample_object: daily_return_pairs         # never raw prices
+    replications: 10000
+    mean_block_days: 20
+    sensitivity_block_days: [10, 40, 60]
+    reestimate_within_replication: true
+    cross_check: newey_west
+    newey_west_lags: 21                          # fixed, ~1 month
+  sharpe_definition: annualised_arithmetic_mean_excess_return / annualised_vol_of_excess_returns
+  alpha_attribution:                          # Amendment 3
+    method: common_beta_from_primary_net_regression
+    identity: alpha_net = alpha_price + alpha_funding - alpha_cost
+    per_layer_regressions: diagnostic_only_never_attribution
+  h2_diagnostics: [realised_vol, mean_abs_exposure, turnover, ex_post_vol_matched_gap]
+  primary_descriptive_estimand: funding_and_execution_cost_drag_with_intervals
+
+reporting:
+  ladder: [price, gross, net]
+  policies_reported: [full_rebalance, buffered]
+  benchmark_series: [price, gross, net]
+  common_position_path_within_policy: true
+  common_capital_denominator: true
+  always_reported:
+    - turnover_and_trade_count
+    - sharpe_with_bootstrap_ci
+    - alpha_beta_appraisal_ratio
+    - newey_west_cross_check
+    - convexity_daily_and_monthly_centred
+    - calendar_year_breakdown_descriptive
+    - coverage_share_of_top10_cap_without_perp
+    - luna_contribution_with_and_without
+    - mean_abs_forecast_and_cap_hit_rate
+    - h2_gap_and_hurdle_result
+    - cost_model_comparison
+    - result_classification
+    - deflated_sharpe_partial_lower_bound
+    - funding_pnl_split_long_vs_short_days
+    - luna_settlement_counterfactual_last_close
+    - terminal_liquidation_sensitivity
+    - vol_floor_and_leverage_cap_bind_frequency

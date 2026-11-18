@@ -1,0 +1,64 @@
+{
+  "created_utc": "2026-10-03T18:34:01+00:00",
+  "fingerprints": {
+    "config_sha256": "7c23eb9121b5a1039695a5f4aee15721c4233e00d7143fb7cc466c6b14eb03ac",
+    "marks": "6bb8981d3d1873611b09074d8285fc0b7ac242bbe58d46a8a0e674b53c1ebc73",
+    "members": "353ab9b0a370813c93d29fe338cbc07e07257ad75b4efb42d299b12bc73cf752",
+    "reference_index": "fa9012e5e5d3376b7098198ff9a31a95b67c48e3ed18eb50b27ba713e63331c8",
+    "settlements": "9c1715d4b9c5921b0c6f0ccca66336a4b6061f2984e980ccc799555e86a03bf2"
+  },
+  "git": {
+    "commit": "0774ccff137148231ed7bed6b4dd8047779bd39c",
+    "dirty": true
+  },
+  "parameters": {
+    "capital": 100000.0,
+    "capital_policy": "fixed",
+    "config": {
+      "annualisation": 365,
+      "band_half_width": 0.1,
+      "cap": 20.0,
+      "config_hash": "7c23eb9121b5a1039695a5f4aee15721c4233e00d7143fb7cc466c6b14eb03ac",
+      "fdm": 1.15,
+      "floor_min_days": 100,
+      "floor_quantile": 0.05,
+      "floor_window": 500,
+      "leverage_cap": 2.0,
+      "scalars": {
+        "16/64": 3.75,
+        "32/128": 2.65,
+        "64/256": 1.87,
+        "8/32": 5.3
+      },
+      "speeds": [
+        [
+          8,
+          32
+        ],
+        [
+          16,
+          64
+        ],
+        [
+          32,
+          128
+        ],
+        [
+          64,
+          256
+        ]
+      ],
+      "target_vol": 0.3,
+      "vol_span": 32,
+      "warmup_observations": 512
+    },
+    "cost_bp_per_side": 10.0,
+    "end": "2026-08-30",
+    "instrument": "btc",
+    "policy": "buffered",
+    "signal_lag_days": 0,
+    "signal_override": false,
+    "start": "2021-07-05"
+  },
+  "result_fingerprint": "a5721504795f17660f60853b58f898cda958b4f0bd404cec607994e5c9d38dd2"
+}

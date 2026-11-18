@@ -1,0 +1,122 @@
+{
+  "analyses": {
+    "S2_btc_cap_30": {
+      "btc_cap": 0.3,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": null,
+      "speed": null
+    },
+    "S3_btc_cap_35": {
+      "btc_cap": 0.35,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": null,
+      "speed": null
+    },
+    "S4_speed_8_32": {
+      "btc_cap": null,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": null,
+      "speed": [
+        8,
+        32
+      ]
+    },
+    "S5_speed_16_64": {
+      "btc_cap": null,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": null,
+      "speed": [
+        16,
+        64
+      ]
+    },
+    "S6_speed_32_128": {
+      "btc_cap": null,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": null,
+      "speed": [
+        32,
+        128
+      ]
+    },
+    "S7_speed_64_256": {
+      "btc_cap": null,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": null,
+      "speed": [
+        64,
+        256
+      ]
+    },
+    "S8_sign_only": {
+      "btc_cap": null,
+      "capital_policy": "fixed",
+      "cost_bp": 10.0,
+      "instrument": "basket",
+      "lag": 0,
+      "policy": "buffered",
+      "signal_variant": "sign_only",
+      "speed": null
+    }
+  },
+  "code_sha256": {
+    "data/universe/selector.py": "d51831ffc5b80e8ebd2804693bd5b7de31324bd6a91cd2535e16322d6b496923",
+    "data/volatility.py": "31356e7bb591ec7594eeb3c29b1dbb002df6e70273e404ef197ec3cf779f089c",
+    "portfolio/basket.py": "4d268846b16877d6a13b7bbcd9626d271ef9bfb1ad3cfc925b9c345045a00e1f",
+    "portfolio/freeze.py": "2712285168c0f6a7577f74b525a3c1ea48505e38014386a57252beb7df991019",
+    "portfolio/inference.py": "31f20fe10e896c9f1b001abf4c7bf1e028e55e3ad3c07f361fecb2e8b7c6b21f",
+    "portfolio/secondaries.py": "3c2af24eb165f64f3a296c7fc27ce7658a8af515633b6b5b458280ac5c0f8d53",
+    "portfolio/strategy_runner.py": "972cd8dabea76526d2508e1065b40bd5485636a48ce935ca1f5683356bc5f54c",
+    "portfolio/trend_signal.py": "434c12f7da77352d10412d5dabd9ab5cc1f5531b3b5bfab423da0d8909173667",
+    "strategies/base.py": "2e07f9b35dd91eb3ac4bedde10e7b89e69fe35dce94d631cd4d22c48515de2b7",
+    "strategies/ewma_crossover.py": "b352d997fb0490b3aafb290ca239f3282d3c5b63f64fee2d3849e365c900e539"
+  },
+  "deferred": {
+    "S10 daily reconstitution": "a different, higher-turnover instrument; needs the same lifecycle work as S9; not built",
+    "S13/S14 measured costs": "Abdi-Ranaldo and aggTrades spread data are not built",
+    "S16 per-coin TSMOM": "a different hypothesis that needs its own engine; the protocol runs it last, after the primary is locked",
+    "S9 weekly reconstitution": "needs the delisting path (LUNA settles in the week of 2022-05-09) wired into the daily loop; not built"
+  },
+  "disclosure": "frozen after the primary result had been seen; the primary freeze listed none of these runs",
+  "frozen_config_sha256": "7c23eb9121b5a1039695a5f4aee15721c4233e00d7143fb7cc466c6b14eb03ac",
+  "git": {
+    "commit": "9960e97c670290611c9f1097506ef069280d2176",
+    "dirty": false
+  },
+  "interpretations": {
+    "S2-S3": "the cap applies at each reconstitution to the index, the books and the benchmark alike; weights drift between resets",
+    "S4-S7": "a single speed keeps its registered scalar and uses a diversification multiplier of 1 (FDM 1.15 belongs to the blend)",
+    "S8": "sign-only means the blend's direction at the average forecast size (+-10), with volatility targeting and caps unchanged"
+  },
+  "purpose": "registered secondary runs S2-S8 (explanatory; cannot rescue H1)",
+  "references_primary_manifest": "c3e68cb1f90a",
+  "seed": 20261004,
+  "window": [
+    "2021-07-05",
+    "2026-08-30"
+  ]
+}

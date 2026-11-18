@@ -1,0 +1,16 @@
+{
+  "days": 1883,
+  "flat_days": 0,
+  "forecast_cap_hit_rate": 0.02389803505045141,
+  "funding_pnl_long_days": -15690.674986546821,
+  "funding_pnl_short_days": 1111.5471795512635,
+  "identity_max_residual": 0.0,
+  "leverage_cap_bind_rate": 0.0,
+  "mean_abs_forecast": 8.256013997629385,
+  "mean_abs_target_exposure": 0.4399684442189145,
+  "trade_count": 11324,
+  "trade_days": 1131,
+  "turnover_per_year": 9.223129165370734,
+  "vol_floor_bind_rate": 0.12692511949017526,
+  "x_star_cap_hit_rate": 0.0
+}
